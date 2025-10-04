@@ -12,28 +12,15 @@ import json
 import streamlit as st
 
 from src.app.adapters import FinamAPIClient
-from src.app.core import call_llm, get_settings
+from src.app.core import get_settings
+from src.app.core import call_llm
+# from src.app.core.local_llm import call_llm
+from src.app.interfaces.promt import SYSTEM_PROMT, API_PROMT
 
 
 def create_system_prompt() -> str:
     """Создать системный промпт для AI ассистента"""
-    return """Ты - AI ассистент трейдера, работающий с Finam TradeAPI.
-
-Когда пользователь задает вопрос о рынке, портфеле или хочет совершить действие:
-1. Определи нужный API endpoint
-2. Укажи запрос в формате: API_REQUEST: METHOD /path
-3. После получения данных - проанализируй их и дай понятный ответ
-
-Доступные endpoints:
-- GET /v1/instruments/{symbol}/quotes/latest - котировка
-- GET /v1/instruments/{symbol}/orderbook - стакан
-- GET /v1/instruments/{symbol}/bars - свечи
-- GET /v1/accounts/{account_id} - счет и позиции
-- GET /v1/accounts/{account_id}/orders - ордера
-- POST /v1/accounts/{account_id}/orders - создать ордер
-- DELETE /v1/accounts/{account_id}/orders/{order_id} - отменить ордер
-
-Отвечай на русском, кратко и по делу."""
+    return SYSTEM_PROMT + API_PROMT
 
 
 def extract_api_request(text: str) -> tuple[str | None, str | None]:
