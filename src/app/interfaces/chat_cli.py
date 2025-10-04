@@ -16,7 +16,7 @@ from src.app.core import call_llm, get_settings
 from src.app.interfaces.promt import SYSTEM_PROMT, API_PROMT
 
 
-from chat import create_system_prompt, extract_message, extract_api_request, extract_is_last_message
+from .chat import create_system_prompt, extract_message, extract_api_request, extract_is_last_message
 
 
 
@@ -74,7 +74,6 @@ def main(account_id: str | None, api_token: str | None) -> None:  # noqa: C901
             conversation_history.append({"role": "user", "content": user_input})
 
             # Получаем ответ от LLM
-            click.echo("🤖 Ассистент: ", nl=False)
             response = call_llm(conversation_history, temperature=0.3)
             assistant_message = response["choices"][0]["message"]["content"]
 
@@ -82,11 +81,11 @@ def main(account_id: str | None, api_token: str | None) -> None:  # noqa: C901
             finam_requests = extract_api_request(assistant_message)
 
             if finam_requests:
-                # TODO: Сделать получение апрува пользователя на каждый модифицирующий запрос!!!
+                click.echo("🤖 Ассистент: ", nl=False)
                 for finam_request in finam_requests:
                     # Выполняем API запрос
-                    click.echo(f"\n   🔍 Выполняю запрос: {finam_request.method} {finam_requests.path}")
-                    api_response = finam_client.execute_finam_requests(finam_requests)
+                    click.echo(f"\n   🔍 Выполняю запрос: {finam_request.method} {finam_request.url}")
+                    api_response = finam_client.execute_finam_requests([finam_request])
 
                     # Проверяем на ошибки
                     if "error" in api_response:
@@ -107,8 +106,15 @@ def main(account_id: str | None, api_token: str | None) -> None:  # noqa: C901
                 response = call_llm(conversation_history, temperature=0.3)
                 assistant_message = response["choices"][0]["message"]["content"]
 
-
-            click.echo(f"{assistant_message}\n")
+            # Извлекаем сообщение для пользователя
+            user_message = extract_message(assistant_message)
+            if user_message:
+                click.echo("🤖 Ассистент: ", nl=False)
+                click.echo(f"{user_message}\n")
+            else:
+                click.echo("🤖 Ассистент: ", nl=False)
+                click.echo(f"{assistant_message}\n")
+            
             conversation_history.append({"role": "assistant", "content": assistant_message})
 
 

@@ -21,7 +21,9 @@ def extract_api_request(text: str) -> List[FinamRequest]:
         logging.error("chat.extract_api_request: The model doesn't answer correctly!")
         data = _extract_requests_manually(text)
         requests = _create_finam_requests(data)
-    return requests
+    
+    # Возвращаем пустой список если requests None
+    return requests if requests is not None else []
 
 def extract_message(text: str) -> Optional[str]:
     try:
@@ -29,7 +31,9 @@ def extract_message(text: str) -> Optional[str]:
     except ValueError:
         logging.error("chat.extract_message: The model doesn't answer correctly!")
         message = _manual_parse_message(text)
-    return message
+    
+    # Возвращаем None если message пустой
+    return message if message else None
 
 def extract_is_last_message(text: str) -> bool:
     is_last = _parse_last_field(text)

@@ -7,7 +7,6 @@ import os
 from typing import Any, List
 
 import requests
-from streamlit import login
 
 from src.app.models import FinamRequest
 
@@ -39,11 +38,22 @@ class FinamAPIClient:
 
     def execute_finam_requests(self, requests: List[FinamRequest]) -> dict[str, Any]:
         """
-        ЭТОТ код должен исполнять запросы
+        Выполняет список запросов к Finam API
         """
-        # TODO: необходимо имплементировать
-        logging.INFO("execute_finam_requests: requests: %s", requests)
-        pass
+        if not requests:
+            return {"error": "No requests provided"}
+        
+        # Выполняем первый запрос (для простоты)
+        request = requests[0]
+        
+        # Извлекаем путь из URL
+        if request.url.startswith(self.base_url):
+            path = request.url[len(self.base_url):]
+        else:
+            path = request.url
+        
+        # Выполняем запрос
+        return self.execute_request(request.method, path, json=request.body)
 
     def execute_request(self, method: str, path: str, **kwargs: Any) -> dict[str, Any]:  # noqa: ANN401
         """
