@@ -1,0 +1,201 @@
+# Place Order API
+
+## Endpoint Information
+- **Method:** POST
+- **URL:** https://api.finam.ru/v1/accounts/{account_id}/orders
+- **Description:** Выставление биржевой заявки
+
+## Request Parameters
+- **account_id** (string): Идентификатор аккаунта (номер счета)
+
+## Request Headers
+- **Authorization:** JWT-токен (обязательно)
+- **Content-Type:** application/json
+
+## Request Body Parameters
+
+### Required Parameters
+- **symbol** (string): Символ инструмента в формате ticker@mic
+- **quantity** (string): Количество в штуках
+- **side** (grpc.tradeapi.v1.Side): Сторона заявки
+  - `SIDE_BUY`: Покупка (long)
+  - `SIDE_SELL`: Продажа (short)
+- **type** (OrderType): Тип заявки
+  - `ORDER_TYPE_MARKET`: Рыночная заявка
+  - `ORDER_TYPE_LIMIT`: Лимитная заявка
+  - `ORDER_TYPE_STOP`: Стоп-заявка
+  - `ORDER_TYPE_STOP_LIMIT`: Стоп-лимитная заявка
+- **time_in_force** (TimeInForce): Срок действия заявки
+  - `TIME_IN_FORCE_DAY`: До конца дня
+  - `TIME_IN_FORCE_IOC`: Немедленно или отмена
+  - `TIME_IN_FORCE_FOK`: Заполнить или убить
+  - `TIME_IN_FORCE_GTC`: До отмены
+
+### Conditional Parameters
+- **limit_price** (string): Цена для лимитной и стоп-лимитной заявки
+- **stop_price** (string): Стоп-цена для стоп-заявок
+- **stop_condition** (StopCondition): Условие срабатывания стоп-заявки
+  - `STOP_CONDITION_UNSPECIFIED`: Не указано
+  - `STOP_CONDITION_MORE`: Больше или равно
+  - `STOP_CONDITION_LESS`: Меньше или равно
+- **legs** (Leg Array): Для мульти-леговых заявок
+- **valid_before** (ValidBefore): Срок действия условной заявки
+
+### Optional Parameters
+- **client_order_id** (string): Уникальный идентификатор заявки (максимум 20 символов)
+- **comment** (string): Метка заявки (максимум 128 символов)
+
+## Response Parameters
+
+### Order Information
+- **order_id** (string): Идентификатор заявки
+- **exec_id** (string): Идентификатор исполнения
+- **status** (OrderStatus): Статус заявки
+- **order** (Order): Детали заявки
+- **transact_at** (string): Дата и время выставления заявки
+- **accept_at** (string): Дата и время принятия заявки
+- **withdraw_at** (string): Дата и время отмены заявки
+
+### Order Object Structure
+- **account_id** (string): Идентификатор аккаунта
+- **symbol** (string): Символ инструмента
+- **quantity** (object): Количество в штуках
+  - **value** (string): Количество
+- **side** (grpc.tradeapi.v1.Side): Сторона заявки
+- **type** (OrderType): Тип заявки
+- **time_in_force** (TimeInForce): Срок действия
+- **limit_price** (object, optional): Лимитная цена
+  - **value** (string): Цена
+- **stop_price** (object, optional): Стоп-цена
+  - **value** (string): Цена
+- **stop_condition** (StopCondition): Условие срабатывания
+- **legs** (Leg Array): Мульти-леговые заявки
+- **client_order_id** (string): Клиентский ID заявки
+- **valid_before** (ValidBefore): Срок действия
+- **comment** (string): Комментарий
+
+## Example Response
+```json
+{
+  "order_id": "71218896129",
+  "exec_id": "ord.71218896129.1759374649567648",
+  "status": "ORDER_STATUS_NEW",
+  "order": {
+    "account_id": "1899011",
+    "symbol": "AFLT@MISX",
+    "quantity": {
+      "value": "10.0"
+    },
+    "side": "SIDE_BUY",
+    "type": "ORDER_TYPE_LIMIT",
+    "time_in_force": "TIME_IN_FORCE_DAY",
+    "limit_price": {
+      "value": "50.0"
+    },
+    "stop_condition": "STOP_CONDITION_UNSPECIFIED",
+    "legs": [],
+    "client_order_id": "test020",
+    "valid_before": "VALID_BEFORE_UNSPECIFIED"
+  },
+  "transact_at": "2025-10-02T13:31:07.417Z"
+}
+```
+
+## Order Types
+
+### Market Order (ORDER_TYPE_MARKET)
+- **Описание**: Исполняется по текущей рыночной цене
+- **Параметры**: symbol, quantity, side, time_in_force
+- **Использование**: Быстрое исполнение, не требует цены
+
+### Limit Order (ORDER_TYPE_LIMIT)
+- **Описание**: Исполняется только по указанной цене или лучше
+- **Параметры**: symbol, quantity, side, time_in_force, **limit_price**
+- **Использование**: Контроль цены исполнения
+
+### Stop Order (ORDER_TYPE_STOP)
+- **Описание**: Рыночная заявка при достижении стоп-цены
+- **Параметры**: symbol, quantity, side, time_in_force, **stop_price**, **stop_condition**
+- **Использование**: Ограничение убытков
+
+### Stop Limit Order (ORDER_TYPE_STOP_LIMIT)
+- **Описание**: Лимитная заявка при достижении стоп-цены
+- **Параметры**: symbol, quantity, side, time_in_force, **limit_price**, **stop_price**, **stop_condition**
+- **Использование**: Комбинированная защита
+
+## Usage Examples
+
+### Market Order
+```python
+# Рыночная заявка на покупку
+order_data = {
+    "symbol": "SBER@MISX",
+    "quantity": "10",
+    "side": "SIDE_BUY",
+    "type": "ORDER_TYPE_MARKET",
+    "time_in_force": "TIME_IN_FORCE_DAY"
+}
+
+response = requests.post(
+    f"https://api.finam.ru/v1/accounts/{account_id}/orders",
+    headers={"Authorization": jwt_token, "Content-Type": "application/json"},
+    json=order_data
+)
+```
+
+### Limit Order
+```python
+# Лимитная заявка на продажу
+order_data = {
+    "symbol": "AFLT@MISX",
+    "quantity": "10",
+    "side": "SIDE_SELL",
+    "type": "ORDER_TYPE_LIMIT",
+    "time_in_force": "TIME_IN_FORCE_DAY",
+    "limit_price": "50.0"
+}
+
+response = requests.post(
+    f"https://api.finam.ru/v1/accounts/{account_id}/orders",
+    headers={"Authorization": jwt_token, "Content-Type": "application/json"},
+    json=order_data
+)
+```
+
+### Stop Order
+```python
+# Стоп-заявка для ограничения убытков
+order_data = {
+    "symbol": "SBER@MISX",
+    "quantity": "10",
+    "side": "SIDE_SELL",
+    "type": "ORDER_TYPE_STOP",
+    "time_in_force": "TIME_IN_FORCE_DAY",
+    "stop_price": "200.0",
+    "stop_condition": "STOP_CONDITION_LESS"
+}
+
+response = requests.post(
+    f"https://api.finam.ru/v1/accounts/{account_id}/orders",
+    headers={"Authorization": jwt_token, "Content-Type": "application/json"},
+    json=order_data
+)
+```
+
+## Order Status Values
+- **ORDER_STATUS_NEW**: Новая заявка
+- **ORDER_STATUS_PARTIALLY_FILLED**: Частично исполнена
+- **ORDER_STATUS_FILLED**: Полностью исполнена
+- **ORDER_STATUS_CANCELLED**: Отменена
+- **ORDER_STATUS_REJECTED**: Отклонена
+
+## Usage Notes
+- Обязательно передавать JWT-токен в заголовке Authorization
+- account_id берется из ответа TokenDetails
+- symbol должен быть в формате ticker@mic
+- quantity должно быть кратно lot_size инструмента
+- limit_price должно быть кратно min_step инструмента
+- client_order_id должен быть уникальным в рамках аккаунта
+- Используйте GetAssetParams для проверки торговых параметров
+- Рекомендуется проверять расписание торгов перед выставлением заявки
+- Заявки могут быть отклонены по различным причинам (недостаток средств, неверные параметры)

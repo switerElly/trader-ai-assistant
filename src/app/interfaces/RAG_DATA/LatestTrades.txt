@@ -1,0 +1,91 @@
+# LatestTrades API
+
+## Endpoint Information
+- **Method:** GET
+- **URL:** https://api.finam.ru/v1/instruments/{symbol}/trades/latest
+- **Description:** Получение списка последних сделок по инструменту
+
+## Request Parameters
+- **symbol** (string): Символ инструмента в формате `ticker@mic` (например, YDEX@MISX)
+
+## Request Headers
+- **Authorization:** JWT-токен (обязательно)
+
+## Response Parameters
+- **symbol** (string): Символ инструмента
+- **trades** (Trade Array): Массив последних сделок
+
+### Trade Object Structure
+Каждая сделка содержит следующие поля:
+
+- **trade_id** (string): Идентификатор сделки, отправленный биржей
+- **mpid** (string): Идентификатор участника рынка (может быть пустым)
+- **timestamp** (string): Метка времени сделки (ISO 8601)
+- **price** (object): Цена сделки
+  - **value** (string): Цена в валюте инструмента
+- **size** (object): Размер сделки
+  - **value** (string): Количество в штуках
+- **side** (grpc.tradeapi.v1.Side): Сторона сделки
+  - **SIDE_BUY**: Покупка
+  - **SIDE_SELL**: Продажа
+
+## Example Response
+```json
+{
+  "symbol": "YDEX@MISX",
+  "trades": [
+    {
+      "trade_id": "13766276190",
+      "mpid": "",
+      "timestamp": "2025-07-24T08:26:27.314736Z",
+      "price": {
+        "value": "4350.0"
+      },
+      "size": {
+        "value": "5.0"
+      },
+      "side": "SIDE_BUY"
+    },
+    {
+      "trade_id": "13766276352",
+      "mpid": "",
+      "timestamp": "2025-07-24T08:26:28.674580Z",
+      "price": {
+        "value": "4350.0"
+      },
+      "size": {
+        "value": "7.0"
+      },
+      "side": "SIDE_BUY"
+    }
+  ]
+}
+```
+
+## Key Concepts
+
+### Trade Information
+- **Trade ID**: Уникальный идентификатор сделки от биржи
+- **MPID**: Market Participant ID - идентификатор участника рынка
+- **Timestamp**: Точное время исполнения сделки
+- **Price**: Цена исполнения сделки
+- **Size**: Объём сделки в штуках
+- **Side**: Направление сделки (покупка/продажа)
+
+### Trade Flow
+- Сделки возвращаются в хронологическом порядке (новые первыми)
+- Данные обновляются в реальном времени
+- Пустой массив trades означает отсутствие сделок за последний период
+
+
+
+## Usage Notes
+- Обязательно передавать JWT-токен в заголовке Authorization
+- symbol должен быть в формате `ticker@mic` (например, YDEX@MISX)
+- Данные обновляются в реальном времени
+- Сделки возвращаются в хронологическом порядке (новые первыми)
+- Пустой массив trades означает отсутствие сделок
+- MPID может быть пустым для некоторых бирж
+- Время всегда в UTC (Z в конце timestamp)
+- Рекомендуется кэшировать данные для частых запросов
+- Максимальная частота запросов может быть ограничена API

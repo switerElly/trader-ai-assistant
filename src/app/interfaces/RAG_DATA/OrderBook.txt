@@ -1,0 +1,99 @@
+# OrderBook API
+
+## Endpoint Information
+- **Method:** GET
+- **URL:** https://api.finam.ru/v1/instruments/{symbol}/orderbook
+- **Description:** Получение текущего стакана по инструменту
+
+## Request Parameters
+- **symbol** (string): Символ инструмента в формате `ticker@mic` (например, YDEX@MISX)
+
+## Request Headers
+- **Authorization:** JWT-токен (обязательно)
+
+## Response Parameters
+- **symbol** (string): Символ инструмента
+- **orderbook** (OrderBook): Объект стакана заявок
+
+### OrderBook Object Structure
+- **rows** (OrderBook.Row Array): Массив уровней стакана
+
+### OrderBook.Row Object Structure
+Каждый уровень стакана содержит:
+
+- **price** (object): Цена уровня
+  - **value** (string): Цена в валюте инструмента
+- **sell_size** (object): Размер заявок на продажу
+  - **value** (string): Количество в штуках
+- **buy_size** (object, optional): Размер заявок на покупку
+  - **value** (string): Количество в штуках
+- **action** (string): Действие с уровнем
+  - `ACTION_ADD`: Добавление уровня
+  - `ACTION_UPDATE`: Обновление уровня
+  - `ACTION_DELETE`: Удаление уровня
+- **mpid** (string): Идентификатор участника рынка (может быть пустым)
+- **timestamp** (string): Время последнего обновления уровня (ISO 8601)
+
+## Example Response
+```json
+{
+  "symbol": "YDEX@MISX",
+  "orderbook": {
+    "rows": [
+      {
+        "price": {
+          "value": "4354.5"
+        },
+        "sell_size": {
+          "value": "18.0"
+        },
+        "action": "ACTION_ADD",
+        "mpid": "",
+        "timestamp": "2025-07-24T08:43:04.573168Z"
+      },
+      {
+        "price": {
+          "value": "4354.0"
+        },
+        "sell_size": {
+          "value": "2.0"
+        },
+        "action": "ACTION_ADD",
+        "mpid": "",
+        "timestamp": "2025-07-24T08:43:04.573168Z"
+      }
+    ]
+  }
+}
+```
+
+## Key Concepts
+
+### Order Book Structure
+- **Стакан заявок**: Список всех активных заявок на покупку и продажу, отсортированный по цене
+- **Уровни стакана**: Группировка заявок по одинаковой цене
+- **Bid/Ask**: Лучшие цены покупки (bid) и продажи (ask)
+
+### Order Book Actions
+- **ACTION_ADD**: Новый уровень добавлен в стакан
+- **ACTION_UPDATE**: Существующий уровень обновлен
+- **ACTION_DELETE**: Уровень удален из стакана
+
+### Market Depth
+- **sell_size**: Объём заявок на продажу по данной цене
+- **buy_size**: Объём заявок на покупку по данной цене
+- **price**: Цена уровня в стакане
+
+### Data Freshness
+- **timestamp**: Время последнего обновления каждого уровня
+- **mpid**: Идентификатор участника рынка (может быть пустым)
+
+## Usage Notes
+- Обязательно передавать JWT-токен в заголовке Authorization
+- symbol должен быть в формате `ticker@mic` (например, YDEX@MISX)
+- Данные обновляются в реальном времени
+- Стакан может быть пустым, если нет активных заявок
+- Уровни обычно отсортированы по цене (от лучших к худшим)
+- Время всегда в UTC (Z в конце timestamp)
+- Рекомендуется кэшировать данные для частых запросов
+- Максимальная частота запросов может быть ограничена API

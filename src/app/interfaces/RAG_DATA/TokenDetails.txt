@@ -1,0 +1,75 @@
+# Token Details API
+
+## Endpoint Information
+- **Method:** POST
+- **URL:** https://api.finam.ru/v1/sessions/details
+- **Description:** Получение информации о токене сессии
+
+## Request Parameters
+- **token** (string): JWT-токен
+
+## Response Parameters
+
+### Basic Token Information
+- **created_at** (string): Дата и время создания токена
+- **expires_at** (string): Дата и время экспирации токена
+- **account_ids** (string Array): Идентификаторы доступных аккаунтов
+- **readonly** (bool): Флаг режима только для чтения
+
+### Market Data Permissions (md_permissions)
+Массив разрешений на доступ к рыночным данным:
+
+- **quote_level** (MDPermission.QuoteLevel): Уровень котировок
+  - `QUOTE_LEVEL_DEPTH_OF_MARKET`: Доступ к полному стакану заявок
+- **delay_minutes** (number): Задержка данных в минутах (0 = реальное время)
+- **mic** (string): Идентификатор биржи (например, #RBRD, #WWCP)
+- **country** (string): Страна биржи
+- **continent** (string): Континент биржи
+- **worldwide** (bool): Доступ к данным по всему миру
+
+## Example Response
+```json
+{
+  "created_at": "2025-07-24T07:51:27Z",
+  "expires_at": "2025-07-24T08:06:30Z",
+  "md_permissions": [
+    {
+      "quote_level": "QUOTE_LEVEL_DEPTH_OF_MARKET",
+      "delay_minutes": 0,
+      "mic": "#RBRD"
+    },
+    {
+      "quote_level": "QUOTE_LEVEL_DEPTH_OF_MARKET",
+      "delay_minutes": 0,
+      "mic": "#WWCP"
+    }
+  ],
+  "account_ids": [
+    "1899011"
+  ],
+  "readonly": false
+}
+```
+
+## Key Concepts
+
+### Token Lifecycle
+- **created_at**: Время создания JWT токена
+- **expires_at**: Время истечения токена (обычно 15 минут)
+- **readonly**: Если true, то все операции только для чтения
+
+### Market Data Access
+- **QUOTE_LEVEL_DEPTH_OF_MARKET**: Полный доступ к стакану заявок
+- **delay_minutes**: 0 означает данные в реальном времени
+- **mic**: Уникальный идентификатор биржи
+  - `#RBRD`: Московская биржа (акции)
+  - `#WWCP`: Всемирные котировки
+
+### Account Access
+- **account_ids**: Список доступных торговых счетов
+- **readonly**: Ограничение на торговые операции
+
+## Usage Notes
+- Токен необходимо обновлять до истечения срока действия
+- Разрешения на рыночные данные зависят от типа подписки
+- Каждый аккаунт может иметь разные права доступа

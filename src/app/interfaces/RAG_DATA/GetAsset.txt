@@ -1,0 +1,114 @@
+# Get Asset API
+
+## Endpoint Information
+- **Method:** GET
+- **URL:** https://api.finam.ru/v1/assets/{symbol}
+- **Description:** Получение информации по конкретному инструменту
+
+## Request Parameters
+- **symbol** (string): Символ инструмента в формате ticker@mic
+- **account_id** (string, optional): ID аккаунта для подбора информации по инструменту
+
+## Request Headers
+- **Authorization:** JWT-токен (обязательно)
+
+## Response Parameters
+
+### Basic Asset Information
+- **board** (string): Код режима торгов
+- **id** (string): Идентификатор инструмента
+- **ticker** (string): Тикер инструмента
+- **mic** (string): MIC идентификатор биржи
+- **isin** (string): ISIN идентификатор инструмента
+- **type** (string): Тип инструмента
+- **name** (string): Наименование инструмента
+
+### Trading Parameters
+- **decimals** (number): Количество десятичных знаков в цене
+- **min_step** (string): Минимальный шаг цены
+- **lot_size** (object): Количество штук в лоте
+  - **value** (string): Размер лота
+- **expiration_date** (google.type.Date, optional): Дата экспирации фьючерса
+- **quote_currency** (string): Валюта котировки
+
+## Example Response
+```json
+{
+  "board": "TQBR",
+  "id": "3",
+  "ticker": "SBER",
+  "mic": "MISX",
+  "isin": "RU0009029540",
+  "type": "EQUITIES",
+  "name": "Сбербанк",
+  "lot_size": {
+    "value": "10.0"
+  },
+  "decimals": 2,
+  "min_step": "1"
+}
+```
+
+## Key Concepts
+
+### Symbol Format
+- **ticker@mic**: Стандартный формат символа инструмента
+  - **ticker**: Краткое обозначение инструмента (SBER, AAPL)
+  - **mic**: Код биржи (MISX, XNYS)
+
+### Trading Board Codes
+- **TQBR**: Основной режим торгов акциями (Московская биржа)
+- **TQTD**: Режим торгов депозитарными расписками
+- **TQDE**: Режим торгов еврооблигациями
+- **TQIF**: Режим торгов паевыми фондами
+
+### Price Calculation
+- **min_step**: Минимальный шаг цены в базовых единицах
+- **decimals**: Количество десятичных знаков
+- **Формула**: `min_step / (10^decimals) = минимальный шаг цены`
+- **Пример**: min_step=1, decimals=2 → минимальный шаг = 0.01
+
+### Lot Size
+- **lot_size**: Количество инструментов в одном лоте
+- **Торговля**: Минимальный объем торговли = lot_size
+- **Пример**: lot_size=10.0 означает, что можно торговать минимум 10 штук
+
+### Instrument Types
+- **EQUITIES**: Акции
+- **BONDS**: Облигации
+- **FUTURES**: Фьючерсы
+- **OPTIONS**: Опционы
+- **CURRENCY**: Валютные пары
+- **COMMODITIES**: Товары
+
+### Expiration Date
+- **expiration_date**: Дата экспирации (только для срочных инструментов)
+- **Фьючерсы**: Дата поставки базового актива
+- **Опционы**: Дата исполнения опциона
+
+## Usage Examples
+
+### Basic Request
+```
+GET /v1/assets/SBER@MISX?account_id=1899011
+Authorization: Bearer your_jwt_token
+```
+
+### Response Processing
+```python
+# Получение информации об инструменте
+response = requests.get(
+    "https://api.finam.ru/v1/assets/SBER@MISX",
+    headers={"Authorization": jwt_token},
+    params={"account_id": "1899011"}
+)
+asset = response.json()
+
+## Usage Notes
+- Обязательно передавать JWT-токен в заголовке Authorization
+- symbol должен быть в формате ticker@mic
+- account_id опционален, но рекомендуется для получения актуальной информации
+- Используйте для валидации торговых параметров перед созданием ордеров
+- lot_size определяет минимальный объем торговли
+- min_step и decimals определяют точность ценообразования
+- expiration_date присутствует только для срочных инструментов

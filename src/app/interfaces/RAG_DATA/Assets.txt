@@ -1,0 +1,115 @@
+# Assets API
+
+## Endpoint Information
+- **Method:** GET
+- **URL:** https://api.finam.ru/v1/assets
+- **Description:** Получение списка доступных инструментов, их описание
+
+## Request Parameters
+Нет параметров запроса
+
+## Request Headers
+- **Authorization:** JWT-токен (обязательно)
+
+## Response Parameters
+- **assets** (Asset Array): Массив информации об инструментах
+
+### Asset Object Structure
+Каждый инструмент содержит следующие поля:
+
+- **symbol** (string): Символ инструмента в формате ticker@mic
+- **id** (string): Уникальный идентификатор инструмента
+- **ticker** (string): Тикер инструмента
+- **mic** (string): MIC идентификатор биржи
+- **isin** (string): ISIN идентификатор инструмента
+- **type** (string): Тип инструмента
+- **name** (string): Наименование инструмента
+
+## Example Response
+```json
+{
+  "assets": [
+    {
+      "symbol": "AAPL@XNGS",
+      "id": "75022",
+      "ticker": "AAPL",
+      "mic": "XNGS",
+      "isin": "US0378331005",
+      "type": "EQUITIES",
+      "name": "Apple Inc."
+    },
+    {
+      "symbol": "SBER@RUSX",
+      "id": "419750",
+      "ticker": "SBER",
+      "mic": "RUSX",
+      "isin": "RU0009029540",
+      "type": "EQUITIES",
+      "name": "ПАО 'Сбербанк России', ао"
+    }
+  ]
+}
+```
+
+## Key Concepts
+
+### Symbol Format
+- **ticker@mic**: Стандартный формат символа инструмента
+  - **ticker**: Краткое обозначение инструмента (AAPL, SBER)
+  - **mic**: Код биржи (XNGS, RUSX)
+
+### Instrument Identifiers
+- **id**: Внутренний идентификатор Finam
+- **ticker**: Краткое название инструмента
+- **isin**: Международный стандартный номер ценной бумаги
+- **mic**: Market Identifier Code биржи
+
+### MIC Codes (Market Identifier Codes)
+- **XNGS**: NASDAQ (американские акции)
+- **RUSX**: Московская биржа (российские акции)
+- **MISX**: Московская биржа (альтернативный код)
+- **XNYS**: NYSE (Нью-Йоркская фондовая биржа)
+
+### Instrument Types
+- **EQUITIES**: Акции
+- **BONDS**: Облигации
+- **FUTURES**: Фьючерсы
+- **OPTIONS**: Опционы
+- **CURRENCY**: Валютные пары
+- **COMMODITIES**: Товары
+
+## Usage Examples
+
+### Basic Request
+```
+GET /v1/assets
+Authorization: Bearer your_jwt_token
+```
+
+### Response Processing
+```python
+# Получение всех доступных инструментов
+response = requests.get(
+    "https://api.finam.ru/v1/assets",
+    headers={"Authorization": jwt_token}
+)
+assets = response.json()["assets"]
+
+# Поиск конкретного инструмента
+sber_assets = [asset for asset in assets if asset["ticker"] == "SBER"]
+
+# Фильтрация по типу
+equities = [asset for asset in assets if asset["type"] == "EQUITIES"]
+
+# Фильтрация по бирже
+russian_assets = [asset for asset in assets if "RUS" in asset["mic"]]
+```
+
+## Usage Notes
+- Обязательно передавать JWT-токен в заголовке Authorization
+- Возвращает ВСЕ доступные инструменты (может быть большой объем данных)
+- Список обновляется в реальном времени
+- Используйте фильтрацию на стороне клиента для поиска нужных инструментов
+- symbol используется в других API для указания конкретного инструмента
+- id используется для внутренних операций Finam
+- isin полезен для поиска инструментов по международному стандарту

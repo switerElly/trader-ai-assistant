@@ -1,0 +1,115 @@
+# Schedule API
+
+## Endpoint Information
+- **Method:** GET
+- **URL:** https://api.finam.ru/v1/assets/{symbol}/schedule
+- **Description:** Получение расписания торгов для инструмента
+
+## Request Parameters
+- **symbol** (string): Символ инструмента в формате ticker@mic
+
+## Request Headers
+- **Authorization:** JWT-токен (обязательно)
+
+## Response Parameters
+
+### Basic Information
+- **symbol** (string): Символ инструмента
+- **sessions** (ScheduleResponse.Sessions Array): Массив сессий инструмента
+
+### Session Object Structure
+Каждая сессия содержит следующие поля:
+
+- **type** (string): Тип сессии
+- **interval** (google.type.Interval): Интервал сессии
+  - **start_time** (string): Время начала сессии (ISO 8601)
+  - **end_time** (string): Время окончания сессии (ISO 8601)
+
+## Example Response
+```json
+{
+  "symbol": "YDEX@MISX",
+  "sessions": [
+    {
+      "type": "CLOSED",
+      "interval": {
+        "start_time": "2025-07-23T21:00:00Z",
+        "end_time": "2025-07-24T03:50:00Z"
+      }
+    },
+    {
+      "type": "EARLY_TRADING",
+      "interval": {
+        "start_time": "2025-07-24T04:00:00Z",
+        "end_time": "2025-07-24T06:50:00Z"
+      }
+    },
+    {
+      "type": "CORE_TRADING",
+      "interval": {
+        "start_time": "2025-07-24T06:50:00Z",
+        "end_time": "2025-07-24T15:40:00Z"
+      }
+    },
+    {
+      "type": "LATE_TRADING",
+      "interval": {
+        "start_time": "2025-07-24T16:05:00Z",
+        "end_time": "2025-07-24T20:50:00Z"
+      }
+    },
+    {
+      "type": "LATE_TRADING",
+      "interval": {
+        "start_time": "2025-07-25T16:05:00Z",
+        "end_time": "2025-07-25T20:50:00Z"
+      }
+    }
+  ]
+}
+```
+
+## Key Concepts
+
+### Session Types
+- **CLOSED**: Торги закрыты
+- **EARLY_TRADING**: Ранние торги (pre-market)
+- **CORE_TRADING**: Основные торги (основная сессия)
+- **LATE_TRADING**: Поздние торги (after-hours)
+
+### Time Format
+- **start_time/end_time**: Время в формате ISO 8601 (UTC)
+- **Format**: `YYYY-MM-DDTHH:MM:SSZ`
+- **Timezone**: UTC (время по Гринвичу)
+
+### Trading Sessions
+- **EARLY_TRADING**: Обычно с 04:00 до 06:50 UTC
+- **CORE_TRADING**: Основная сессия с 06:50 до 15:40 UTC
+- **LATE_TRADING**: Поздние торги с 16:05 до 20:50 UTC
+- **CLOSED**: Ночной перерыв с 21:00 до 04:00 UTC
+
+## Usage Examples
+
+### Basic Request
+```
+GET /v1/assets/YDEX@MISX/schedule
+Authorization: Bearer your_jwt_token
+```
+
+### Response Processing
+```python
+response = requests.get(
+    "https://api.finam.ru/v1/assets/YDEX@MISX/schedule",
+    headers={"Authorization": jwt_token}
+)
+schedule = response.json()
+
+## Usage Notes
+- Обязательно передавать JWT-токен в заголовке Authorization
+- symbol должен быть в формате ticker@mic
+- Время возвращается в UTC
+- Расписание может содержать несколько сессий в день
+- CLOSED сессии указывают на периоды закрытия торгов
+- Используйте для определения времени торговли инструмента
+- Расписание может изменяться в зависимости от праздников и особых дней
+- Рекомендуется периодически обновлять расписание

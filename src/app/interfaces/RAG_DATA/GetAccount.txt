@@ -1,0 +1,139 @@
+# Get Account API
+
+## Endpoint Information
+- **Method:** GET
+- **URL:** https://api.finam.ru/v1/accounts/{account_id}
+- **Description:** Получение информации по конкретному аккаунту
+
+## Request Parameters
+- **account_id** (string): Идентификатор аккаунта (номер счета)
+
+## Request Headers
+- **Authorization:** JWT-токен (обязательно)
+
+## Response Parameters
+
+### Basic Account Information
+- **account_id** (string): Идентификатор аккаунта
+- **type** (string): Тип аккаунта
+  - `UNION`: Объединенный счет Московской Биржи
+- **status** (string): Статус аккаунта
+  - `ACCOUNT_ACTIVE`: Активный счет
+- **equity** (string): Доступные средства плюс стоимость открытых позиций
+- **unrealized_profit** (string): Нереализованная прибыль
+
+### Positions (positions)
+Массив позиций - открытые плюс теоретические по неисполненным активным заявкам:
+
+- **symbol** (string): Символ инструмента (например, AFLT@MISX)
+- **quantity** (string): Количество в шт., значение со знаком определяющее (long-short)
+  - Положительное значение = Long позиция
+  - Отрицательное значение = Short позиция
+- **average_price** (string): Средняя цена входа (не заполняется для FORTS позиций)
+- **current_price** (string): Текущая рыночная цена
+- **maintenance_margin** (string): Поддерживающее гарантийное обеспечение (только для FORTS позиций)
+- **daily_pnl** (string): Прибыль или убыток за текущий день (не заполняется для FORTS позиций)
+- **unrealized_pnl** (string): Суммарная нереализованная прибыль или убыток по позиции
+
+### Cash Information
+- **cash** (google.type.Money Array): Сумма собственных денежных средств на счете, доступная для торговли
+  - **currency_code** (string): Код валюты (RUB, USD, EUR)
+  - **units** (string): Целая часть суммы
+  - **nanos** (number): Дробная часть в наносекундах
+
+### Portfolio Types
+
+#### Portfolio MC (Московская Биржа)
+- **available_cash** (string): Сумма собственных денежных средств, доступная для торговли (включает маржинальные средства)
+- **initial_margin** (string): Начальная маржа
+- **maintenance_margin** (string): Минимальная маржа
+
+#### Portfolio MCT (Американские рынки)
+- **available_cash** (string): Доступные средства для торговли
+- **money_reserved** (string): Минимальная маржа (необходимая сумма обеспечения под открытые позиции)
+
+#### Portfolio FORTS (Срочный рынок)
+- **available_cash** (string): Доступные средства для торговли
+- **money_reserved** (string): Минимальная маржа под открытые позиции
+
+## Example Response
+```json
+{
+  "account_id": "1899011",
+  "type": "UNION",
+  "status": "ACCOUNT_ACTIVE",
+  "equity": {
+    "value": "989.38"
+  },
+  "unrealized_profit": {
+    "value": "0.4"
+  },
+  "positions": [
+    {
+      "symbol": "AFLT@MISX",
+      "quantity": {
+        "value": "10.0"
+      },
+      "average_price": {
+        "value": "62.72"
+      },
+      "current_price": {
+        "value": "62.76"
+      },
+      "daily_pnl": {
+        "value": "0.4"
+      },
+      "unrealized_pnl": {
+        "value": "0.4"
+      }
+    }
+  ],
+  "cash": [
+    {
+      "currency_code": "RUB",
+      "units": "361",
+      "nanos": 7800000
+    }
+  ],
+  "portfolio_mc": {
+    "available_cash": {
+      "value": "361.78"
+    },
+    "initial_margin": {
+      "value": "627.6"
+    },
+    "maintenance_margin": {
+      "value": "313.8"
+    }
+  }
+}
+```
+
+## Key Concepts
+
+### Account Types
+- **UNION**: Объединенный счет Московской Биржи (акции + облигации)
+- **ACCOUNT_ACTIVE**: Активный статус счета
+
+### Position Management
+- **Long позиция**: quantity > 0 (покупка)
+- **Short позиция**: quantity < 0 (продажа)
+- **PnL**: Прибыль/убыток по позиции
+  - **daily_pnl**: За текущий день
+  - **unrealized_pnl**: Общий нереализованный
+
+### Margin Requirements
+- **initial_margin**: Начальная маржа для открытия позиции
+- **maintenance_margin**: Минимальная маржа для поддержания позиции
+- **available_cash**: Свободные средства для торговли
+
+### Currency Handling
+- **units**: Целая часть суммы
+- **nanos**: Дробная часть (1 единица = 1,000,000,000 наносекунд)
+- **currency_code**: Код валюты (RUB, USD, EUR)
+
+## Usage Notes
+- Обязательно передавать JWT-токен в заголовке Authorization
+- account_id берется из ответа TokenDetails
+- Позиции включают как открытые, так и теоретические (по активным заявкам)
+- FORTS позиции имеют особенности в расчете маржи и PnL

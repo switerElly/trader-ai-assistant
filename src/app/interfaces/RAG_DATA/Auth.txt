@@ -1,0 +1,32 @@
+# Authentication API
+
+## 1. Authentication Endpoint
+
+**Method:** POST  
+**URL:** https://api.finam.ru/v1/sessions  
+**Description:** Получение JWT токена из API токена
+
+### Request Parameters
+- **secret** (string): API токен (secret key) - токен, сгенерированный на портале Finam
+
+### Response Parameters
+- **token** (string): Полученный JWT-токен
+
+### Example Request
+```json
+{
+  "secret": "your_api_token_here"
+}
+```
+
+### Example Response
+```json
+{
+  "token": "jwt_token"
+}
+```
+
+### Usage Notes
+- Обязательно передавать API токен в поле secret
+- JWT токен используется для авторизации всех последующих запросов
+- Токен имеет ограниченное время жизни

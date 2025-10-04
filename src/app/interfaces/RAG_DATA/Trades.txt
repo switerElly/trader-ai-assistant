@@ -1,0 +1,120 @@
+# Trades API
+
+## Endpoint Information
+- **Method:** GET
+- **URL:** https://api.finam.ru/v1/accounts/{account_id}/trades
+- **Description:** Получение истории по сделкам аккаунта
+
+## Request Parameters
+- **account_id** (string): Идентификатор аккаунта (номер счета)
+- **limit** (number, optional): Лимит количества сделок
+- **interval** (google.type.Interval, optional): Временной интервал для фильтрации
+  - **start_time** (Unix epoch time): Начало периода
+  - **end_time** (Unix epoch time): Конец периода
+
+## Request Headers
+- **Authorization:** JWT-токен (обязательно)
+
+## Response Parameters
+- **trades** (grpc.tradeapi.v1.AccountTrade Array): Массив сделок по аккаунту
+
+### Trade Object Structure
+Каждая сделка содержит следующие поля:
+
+- **trade_id** (string): Уникальный идентификатор сделки
+- **symbol** (string): Символ инструмента (например, AFLT@MISX)
+- **price** (object): Цена сделки
+  - **value** (string): Цена в виде строки
+- **size** (object): Размер сделки
+  - **value** (string): Количество в виде строки
+- **side** (string): Сторона сделки
+  - `SIDE_BUY`: Покупка
+  - `SIDE_SELL`: Продажа
+- **timestamp** (string): Время совершения сделки (ISO 8601 format)
+- **order_id** (string): Идентификатор ордера, по которому совершена сделка
+- **account_id** (string): Идентификатор аккаунта
+
+## Example Response
+```json
+{
+  "trades": [
+    {
+      "trade_id": "13771435993",
+      "symbol": "AFLT@MISX",
+      "price": {
+        "value": "58.74"
+      },
+      "size": {
+        "value": "10.0"
+      },
+      "side": "SIDE_SELL",
+      "timestamp": "2025-07-25T07:58:13Z",
+      "order_id": "68675036456",
+      "account_id": "1899011"
+    },
+    {
+      "trade_id": "13771374981",
+      "symbol": "AFLT@MISX",
+      "price": {
+        "value": "58.7"
+      },
+      "size": {
+        "value": "10.0"
+      },
+      "side": "SIDE_BUY",
+      "timestamp": "2025-07-25T07:52:32Z",
+      "order_id": "68674644043",
+      "account_id": "1899011"
+    }
+  ]
+}
+```
+
+## Key Concepts
+
+### Trade Identification
+- **trade_id**: Уникальный идентификатор каждой сделки
+- **order_id**: Связь с ордером, по которому совершена сделка
+- **account_id**: Привязка к конкретному аккаунту
+
+### Trade Sides
+- **SIDE_BUY**: Покупка инструмента
+- **SIDE_SELL**: Продажа инструмента
+
+### Time Format
+- **timestamp**: Время в формате ISO 8601 (UTC)
+- **interval**: Фильтрация по Unix epoch time (секунды с 1 января 1970)
+
+### Price and Size
+- **price.value**: Цена сделки в виде строки для точности
+- **size.value**: Количество инструмента в сделке
+
+## Query Parameters Usage
+
+### Basic Request
+```
+GET /v1/accounts/1899011/trades
+```
+
+### With Limit
+```
+GET /v1/accounts/1899011/trades?limit=100
+```
+
+### With Time Interval
+```
+GET /v1/accounts/1899011/trades?interval.start_time=1640995200&interval.end_time=1641081600
+```
+
+### Combined Parameters
+```
+GET /v1/accounts/1899011/trades?limit=50&interval.start_time=1640995200&interval.end_time=1641081600
+```
+
+## Usage Notes
+- Обязательно передавать JWT-токен в заголовке Authorization
+- account_id берется из ответа TokenDetails
+- limit ограничивает количество возвращаемых сделок
+- interval позволяет фильтровать сделки по времени
+- Сделки возвращаются в хронологическом порядке (новые первыми)
+- Пустой массив trades означает отсутствие сделок за указанный период
