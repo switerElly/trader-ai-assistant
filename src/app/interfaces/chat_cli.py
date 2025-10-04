@@ -16,24 +16,8 @@ from src.app.core import call_llm, get_settings
 from src.app.interfaces.promt import SYSTEM_PROMT, API_PROMT
 
 
-def create_system_prompt() -> str:
-    """Создать системный промпт для AI ассистента"""
-    return SYSTEM_PROMT + API_PROMT
+from chat import create_system_prompt, extract_message, extract_api_request
 
-
-def extract_api_request(text: str) -> tuple[str | None, str | None]:
-    """Извлечь API запрос из ответа LLM"""
-    if "API_REQUEST:" not in text:
-        return None, None
-
-    lines = text.split("\n")
-    for line in lines:
-        if line.strip().startswith("API_REQUEST:"):
-            request = line.replace("API_REQUEST:", "").strip()
-            parts = request.split(maxsplit=1)
-            if len(parts) == 2:
-                return parts[0], parts[1]
-    return None, None
 
 
 @click.command()
@@ -83,6 +67,9 @@ def main(account_id: str | None, api_token: str | None) -> None:  # noqa: C901
                 click.echo("🔄 История очищена")
                 continue
 
+
+            # TODO: где-то здесь надо добавить RAG
+
             # Добавляем вопрос в историю
             conversation_history.append({"role": "user", "content": user_input})
 
@@ -92,38 +79,38 @@ def main(account_id: str | None, api_token: str | None) -> None:  # noqa: C901
             assistant_message = response["choices"][0]["message"]["content"]
 
             # Проверяем, есть ли API запрос
-            method, path = extract_api_request(assistant_message)
+            finam_requests = extract_api_request(assistant_message)
 
-            if method and path:
-                # Подставляем account_id если есть
-                if account_id and "{account_id}" in path:  # noqa: RUF027
-                    path = path.replace("{account_id}", account_id)
+            if finam_requests:
+                # TODO: Сделать получение апрува пользователя на каждый модифицирующий запрос!!!
+                for finam_request in finam_requests:
+                    # Выполняем API запрос
+                    click.echo(f"\n   🔍 Выполняю запрос: {finam_request.method} {finam_requests.path}")
+                    api_response = finam_client.execute_finam_requests(finam_requests)
 
-                # Выполняем API запрос
-                click.echo(f"\n   🔍 Выполняю запрос: {method} {path}")
-                api_response = finam_client.execute_request(method, path)
+                    # Проверяем на ошибки
+                    if "error" in api_response:
+                        click.echo(f"   ⚠️  Ошибка API: {api_response.get('error')}", err=True)
+                        if "details" in api_response:
+                            click.echo(f"   Детали: {api_response['details']}", err=True)
+                    else:
+                        click.echo(f"   📡 Ответ API: {api_response}\n")
 
-                # Проверяем на ошибки
-                if "error" in api_response:
-                    click.echo(f"   ⚠️  Ошибка API: {api_response.get('error')}", err=True)
-                    if "details" in api_response:
-                        click.echo(f"   Детали: {api_response['details']}", err=True)
-                else:
-                    click.echo(f"   📡 Ответ API: {api_response}\n")
-
-                # Добавляем результат API в контекст
-                conversation_history.append({"role": "assistant", "content": assistant_message})
-                conversation_history.append({
-                    "role": "user",
-                    "content": f"Результат API запроса: {api_response}\n\nПроанализируй это.",
-                })
+                    # Добавляем результат API в контекст
+                    conversation_history.append({"role": "assistant", "content": assistant_message})
+                    conversation_history.append({
+                        "role": "user",
+                        "content": f"Результат API запроса: {api_response}\n\nПроанализируй это.",
+                    })
 
                 # Получаем финальный ответ
                 response = call_llm(conversation_history, temperature=0.3)
                 assistant_message = response["choices"][0]["message"]["content"]
 
+
             click.echo(f"{assistant_message}\n")
             conversation_history.append({"role": "assistant", "content": assistant_message})
+
 
         except KeyboardInterrupt:
             click.echo("\n\n👋 До свидания!")

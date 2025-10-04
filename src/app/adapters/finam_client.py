@@ -2,11 +2,14 @@
 Клиент для работы с Finam TradeAPI
 https://tradeapi.finam.ru/
 """
-
+import logging
 import os
-from typing import Any
+from typing import Any, List
 
 import requests
+from streamlit import login
+
+from src.app.models import FinamRequest
 
 
 class FinamAPIClient:
@@ -33,6 +36,14 @@ class FinamAPIClient:
                 "Authorization": f"Bearer {self.access_token}",
                 "Content-Type": "application/json",
             })
+
+    def execute_finam_requests(self, requests: List[FinamRequest]) -> dict[str, Any]:
+        """
+        ЭТОТ код должен исполнять запросы
+        """
+        # TODO: необходимо имплементировать
+        logging.INFO("execute_finam_requests: requests: %s", requests)
+        pass
 
     def execute_request(self, method: str, path: str, **kwargs: Any) -> dict[str, Any]:  # noqa: ANN401
         """

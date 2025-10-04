@@ -17,25 +17,7 @@ from src.app.core import call_llm
 # from src.app.core.local_llm import call_llm
 from src.app.interfaces.promt import SYSTEM_PROMT, API_PROMT
 
-
-def create_system_prompt() -> str:
-    """Создать системный промпт для AI ассистента"""
-    return SYSTEM_PROMT + API_PROMT
-
-
-def extract_api_request(text: str) -> tuple[str | None, str | None]:
-    """Извлечь API запрос из ответа LLM"""
-    if "API_REQUEST:" not in text:
-        return None, None
-
-    lines = text.split("\n")
-    for line in lines:
-        if line.strip().startswith("API_REQUEST:"):
-            request = line.replace("API_REQUEST:", "").strip()
-            parts = request.split(maxsplit=1)
-            if len(parts) == 2:
-                return parts[0], parts[1]
-    return None, None
+from chat import create_system_prompt, extract_message, extract_api_request
 
 
 def main() -> None:  # noqa: C901
@@ -106,6 +88,8 @@ def main() -> None:  # noqa: C901
 
     # Поле ввода
     if prompt := st.chat_input("Напишите ваш вопрос..."):
+        # TODO: где-то здесь надо добавить RAG
+
         # Добавляем сообщение пользователя
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
@@ -122,40 +106,40 @@ def main() -> None:  # noqa: C901
                 response = call_llm(conversation_history, temperature=0.3)
                 assistant_message = response["choices"][0]["message"]["content"]
 
-                # Проверяем API запрос
-                method, path = extract_api_request(assistant_message)
+                # ЗДЕСЬ надо отправить еще пользователю тот текст, что засунут в message в ответе LLM
+                message = extract_message(assistant_message) # вот его
+                st.info(message)
 
-                api_data = None
-                if method and path:
-                    # Подставляем account_id если есть
-                    if account_id and "{account_id}" in path:  # noqa: RUF027
-                        path = path.replace("{account_id}", account_id)
 
-                    # Показываем что делаем запрос
-                    st.info(f"🔍 Выполняю запрос: `{method} {path}`")
+                # Проверяем, есть ли API запрос
+                finam_requests = extract_api_request(assistant_message)
 
-                    # Выполняем API запрос
-                    api_response = finam_client.execute_request(method, path)
+                if finam_requests:
+                    # TODO: Сделать получение апрува пользователя на каждый модифицирующий запрос!!!
+                    for finam_request in finam_requests:
+                        # Показываем что делаем запрос
+                        st.info(f"🔍 Выполняю запрос: `{finam_request.method} {finam_request.url}`")
+                        api_response = finam_client.execute_finam_requests(finam_requests)
 
-                    # Проверяем на ошибки
-                    if "error" in api_response:
-                        st.error(f"⚠️ Ошибка API: {api_response.get('error')}")
-                        if "details" in api_response:
-                            st.error(f"Детали: {api_response['details']}")
+                        # Проверяем на ошибки
+                        if "error" in api_response:
+                            st.error(f"⚠️ Ошибка API: {api_response.get('error')}")
+                            if "details" in api_response:
+                                st.error(f"Детали: {api_response['details']}")
+                        else:
+                            st.info(f"   📡 Ответ API: {api_response}\n")
 
-                    # Показываем результат
-                    with st.expander("📡 Ответ API", expanded=False):
-                        st.json(api_response)
+                        # Добавляем результат API в контекст
+                        conversation_history.append({"role": "assistant", "content": assistant_message})
+                        conversation_history.append({
+                            "role": "user",
+                            "content": f"Результат API запроса: {api_response}\n\nПроанализируй это.",
+                        })
 
-                    api_data = {"method": method, "path": path, "response": api_response}
-
-                    # Добавляем результат в контекст
-                    conversation_history.append({"role": "assistant", "content": assistant_message})
-                    conversation_history.append({
-                        "role": "user",
-                        "content": f"Результат API: {json.dumps(api_response, ensure_ascii=False)}\n\nПроанализируй.",
-                    })
-
+                    # TODO: СЕЙЧАС он после второго ответа отправляет весь текст юезру
+                    # TODO: Надо исправить, чтобы в цикле проходилось до тех пор, пока ллмка не вернет джсон, где поле requests пустое, по идее
+                    # или надо доработать формат... короч TODO: в промт добавлю  что если это последнее сообщение пусть пишет "last": true в json
+                    # Доставать message из json надо функцией extract_message(llm_response: str) -> message: str
                     # Получаем финальный ответ
                     response = call_llm(conversation_history, temperature=0.3)
                     assistant_message = response["choices"][0]["message"]["content"]
@@ -164,8 +148,8 @@ def main() -> None:  # noqa: C901
 
                 # Сохраняем сообщение ассистента
                 message_data = {"role": "assistant", "content": assistant_message}
-                if api_data:
-                    message_data["api_request"] = api_data
+                if api_response:
+                    message_data["api_request"] = api_response
                 st.session_state.messages.append(message_data)
 
             except Exception as e:
