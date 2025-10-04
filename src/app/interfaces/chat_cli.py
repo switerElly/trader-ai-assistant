@@ -35,6 +35,7 @@ def create_system_prompt() -> str:
 - GET /v1/accounts/{account_id}/orders - список ордеров
 - POST /v1/accounts/{account_id}/orders - создание ордера
 - DELETE /v1/accounts/{account_id}/orders/{order_id} - отмена ордера
+- GET /v1/instruments/{symbol}/trades/latest - лента сделок
 
 Формат твоего ответа должен быть таким:
 ```
