@@ -1,0 +1,109 @@
+# Get Order API
+
+## Endpoint Information
+- **Method:** GET
+- **URL:** https://api.finam.ru/v1/accounts/{account_id}/orders/{order_id}
+- **Description:** Получение информации о конкретном ордере
+
+## Request Parameters
+- **account_id** (string): Идентификатор аккаунта (номер счета)
+- **order_id** (string): Идентификатор заявки
+
+## Request Headers
+- **Authorization:** JWT-токен (обязательно)
+
+## Response Parameters
+
+### Order Information
+- **order_id** (string): Идентификатор заявки
+- **exec_id** (string): Идентификатор исполнения
+- **status** (OrderStatus): Статус заявки
+- **order** (Order): Детали заявки
+- **transact_at** (string): Дата и время выставления заявки
+- **accept_at** (string): Дата и время принятия заявки
+- **withdraw_at** (string): Дата и время отмены заявки
+
+### Order Object Structure
+- **account_id** (string): Идентификатор аккаунта
+- **symbol** (string): Символ инструмента
+- **quantity** (object): Количество в штуках
+  - **value** (string): Количество
+- **side** (grpc.tradeapi.v1.Side): Сторона заявки
+- **type** (OrderType): Тип заявки
+- **time_in_force** (TimeInForce): Срок действия
+- **limit_price** (object, optional): Лимитная цена
+  - **value** (string): Цена
+- **stop_price** (object, optional): Стоп-цена
+  - **value** (string): Цена
+- **stop_condition** (StopCondition): Условие срабатывания
+- **legs** (Leg Array): Мульти-леговые заявки
+- **client_order_id** (string): Клиентский ID заявки
+- **valid_before** (ValidBefore): Срок действия
+- **comment** (string): Комментарий
+
+## Example Response
+```json
+{
+  "order_id": "71218204651",
+  "exec_id": "trd.14352127845.1759374704214077",
+  "status": "ORDER_STATUS_FILLED",
+  "order": {
+    "account_id": "1899011",
+    "symbol": "AFLT@MISX",
+    "quantity": {
+      "value": "10.0"
+    },
+    "side": "SIDE_BUY",
+    "type": "ORDER_TYPE_MARKET",
+    "time_in_force": "TIME_IN_FORCE_UNSPECIFIED",
+    "stop_condition": "STOP_CONDITION_UNSPECIFIED",
+    "legs": [],
+    "client_order_id": "",
+    "valid_before": "VALID_BEFORE_UNSPECIFIED"
+  },
+  "transact_at": "2025-10-02T13:16:04.338Z"
+}
+```
+
+## Key Concepts
+
+### Order Status Values
+- **ORDER_STATUS_NEW**: Новая заявка
+- **ORDER_STATUS_PARTIALLY_FILLED**: Частично исполнена
+- **ORDER_STATUS_FILLED**: Полностью исполнена
+- **ORDER_STATUS_CANCELLED**: Отменена
+- **ORDER_STATUS_REJECTED**: Отклонена
+
+### Order Types
+- **ORDER_TYPE_MARKET**: Рыночная заявка
+- **ORDER_TYPE_LIMIT**: Лимитная заявка
+- **ORDER_TYPE_STOP**: Стоп-заявка
+- **ORDER_TYPE_STOP_LIMIT**: Стоп-лимитная заявка
+
+### Order Sides
+- **SIDE_BUY**: Покупка (long)
+- **SIDE_SELL**: Продажа (short)
+
+### Time in Force
+- **TIME_IN_FORCE_DAY**: До конца дня
+- **TIME_IN_FORCE_IOC**: Немедленно или отмена
+- **TIME_IN_FORCE_FOK**: Заполнить или убить
+- **TIME_IN_FORCE_GTC**: До отмены
+- **TIME_IN_FORCE_UNSPECIFIED**: Не указано
+
+## Usage Examples
+
+response = requests.get(
+    f"https://api.finam.ru/v1/accounts/{account_id}/orders/{order_id}",
+    headers={"Authorization": jwt_token}
+)
+
+
+## Usage Notes
+- Обязательно передавать JWT-токен в заголовке Authorization
+- account_id берется из ответа TokenDetails
+- order_id получается при создании заявки через PlaceOrder
+- Используйте для проверки статуса заявки
+- Полезно для отслеживания исполнения заявок
+- Рекомендуется периодически проверять статус активных заявок
+- Заявки могут изменять статус в реальном времени

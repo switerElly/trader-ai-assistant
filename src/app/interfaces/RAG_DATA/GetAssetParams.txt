@@ -1,0 +1,129 @@
+# Get Asset Params API
+
+## Endpoint Information
+- **Method:** GET
+- **URL:** https://api.finam.ru/v1/assets/{symbol}/params
+- **Description:** Получение торговых параметров по инструменту
+
+## Request Parameters
+- **symbol** (string): Символ инструмента в формате ticker@mic
+- **account_id** (string): ID аккаунта для которого будут подбираться торговые параметры
+
+## Request Headers
+- **Authorization:** JWT-токен (обязательно)
+
+## Response Parameters
+
+### Basic Information
+- **symbol** (string): Символ инструмента
+- **account_id** (string): ID аккаунта для которого подбираются торговые параметры
+- **tradeable** (bool): Доступны ли торговые операции
+
+### Long Operations (Longable)
+- **longable** (object): Доступны ли операции в Лонг
+  - **value** (Longable.Status): Статус инструмента
+  - **halted_days** (number): Сколько дней действует запрет на операции в Лонг
+
+### Short Operations (Shortable)
+- **shortable** (object): Доступны ли операции в Шорт
+  - **value** (Shortable.Status): Статус инструмента
+  - **halted_days** (number): Сколько дней действует запрет на операции в Шорт
+
+### Risk Parameters
+- **long_risk_rate** (string): Ставка риска для операции в Лонг
+- **long_collateral** (google.type.Money): Сумма обеспечения для поддержания позиции Лонг
+- **short_risk_rate** (string): Ставка риска для операции в Шорт
+- **short_collateral** (google.type.Money): Сумма обеспечения для поддержания позиции Шорт
+
+### Margin Requirements
+- **long_initial_margin** (google.type.Money): Начальные требования для открытия лонг позиции
+- **short_initial_margin** (google.type.Money): Начальные требования для открытия шорт позиции
+
+## Example Response
+```json
+{
+  "symbol": "SBER@MISX",
+  "account_id": "1899011",
+  "tradeable": true,
+  "longable": {
+    "value": "AVAILABLE",
+    "halted_days": 0
+  },
+  "shortable": {
+    "value": "NOT_AVAILABLE",
+    "halted_days": 0
+  },
+  "long_risk_rate": {
+    "value": "100.0"
+  },
+  "long_collateral": {
+    "currency_code": "RUB",
+    "units": "285",
+    "nanos": 50000000
+  },
+  "short_risk_rate": {
+    "value": "300.0"
+  },
+  "long_initial_margin": {
+    "currency_code": "RUB",
+    "units": "285",
+    "nanos": 50000000
+  }
+}
+```
+
+## Key Concepts
+
+### Trading Status Values
+
+#### Longable.Status / Shortable.Status
+- **AVAILABLE**: Операции доступны
+- **NOT_AVAILABLE**: Операции недоступны
+- **ACCOUNT_NOT_APPROVED**: Запрещено на уровне счета
+- **HTB**: Hard To Borrow (только для шорта)
+- **AVAILABLE_STRATEGY**: Разрешено только в составе стратегии
+
+### Risk Management
+- **risk_rate**: Ставка риска в процентах
+  - **100.0**: 100% (полная стоимость)
+  - **300.0**: 300% (требуется дополнительное обеспечение)
+- **collateral**: Сумма обеспечения для поддержания позиции
+- **initial_margin**: Начальная маржа для открытия позиции
+
+### Money Format
+- **currency_code**: Код валюты (RUB, USD, EUR)
+- **units**: Целая часть суммы
+- **nanos**: Дробная часть (1 единица = 1,000,000,000 наносекунд)
+
+### Trading Restrictions
+- **halted_days**: Количество дней запрета на операции
+- **tradeable**: Общий доступ к торговле инструментом
+- **longable/shortable**: Доступ к конкретному типу операций
+
+## Usage Examples
+
+### Basic Request
+```
+GET /v1/assets/SBER@MISX/params?account_id=1899011
+Authorization: Bearer your_jwt_token
+```
+
+### Response Processing
+```python
+# Получение торговых параметров
+response = requests.get(
+    "https://api.finam.ru/v1/assets/SBER@MISX/params",
+    headers={"Authorization": jwt_token},
+    params={"account_id": "1899011"}
+)
+params = response.json()
+
+## Usage Notes
+- Обязательно передавать JWT-токен в заголовке Authorization
+- symbol должен быть в формате ticker@mic
+- account_id обязателен для получения актуальных параметров
+- Используйте для проверки доступности операций перед созданием ордеров
+- risk_rate определяет размер маржинальных требований
+- initial_margin показывает минимальную сумму для открытия позиции
+- halted_days указывает на временные ограничения
+- Параметры могут изменяться в зависимости от типа счета и инструмента

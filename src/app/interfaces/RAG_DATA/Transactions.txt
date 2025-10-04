@@ -1,0 +1,127 @@
+# Transactions API
+
+## Endpoint Information
+- **Method:** GET
+- **URL:** https://api.finam.ru/v1/accounts/{account_id}/transactions
+- **Description:** Получение списка транзакций аккаунта
+
+## Request Parameters
+- **account_id** (string): Идентификатор аккаунта (номер счета)
+- **limit** (number, optional): Лимит количества транзакций
+- **interval** (google.type.Interval, optional): Временной интервал для фильтрации
+  - **start_time** (Unix epoch time): Начало периода
+  - **end_time** (Unix epoch time): Конец периода
+
+## Request Headers
+- **Authorization:** JWT-токен (обязательно)
+
+## Response Parameters
+- **transactions** (Transaction Array): Массив транзакций по аккаунту
+
+### Transaction Object Structure
+Каждая транзакция содержит следующие поля:
+
+- **id** (string): Уникальный идентификатор транзакции
+- **category** (string): Тип транзакции из TransactionCategory
+- **timestamp** (string): Метка времени (ISO 8601 format)
+- **symbol** (string): Символ инструмента (пустая строка для денежных операций)
+- **change** (google.type.Money): Изменение в деньгах
+  - **currency_code** (string): Код валюты (RUB, USD, EUR)
+  - **units** (string): Целая часть суммы
+  - **nanos** (number): Дробная часть в наносекундах
+- **trade** (Transaction.Trade, optional): Информация о сделке (если применимо)
+- **transaction_category** (Transaction.TransactionCategory): Категория транзакции
+- **transaction_name** (string): Наименование транзакции
+
+## Transaction Categories
+
+### COMMISSION
+- **Описание**: Брокерская комиссия
+- **change**: Отрицательное значение (списание)
+- **symbol**: Пустая строка
+
+### DEPOSIT
+- **Описание**: Ввод денежных средств
+- **change**: Положительное значение (пополнение)
+- **symbol**: Пустая строка
+
+### WITHDRAWAL
+- **Описание**: Вывод денежных средств
+- **change**: Отрицательное значение (списание)
+- **symbol**: Пустая строка
+
+### DIVIDEND
+- **Описание**: Дивиденды
+- **change**: Положительное значение (начисление)
+- **symbol**: Символ инструмента
+
+### INTEREST
+- **Описание**: Проценты по депозиту
+- **change**: Положительное значение (начисление)
+- **symbol**: Пустая строка
+
+## Example Response
+```json
+{
+  "transactions": [
+    {
+      "id": "2556733362",
+      "category": "COMMISSION",
+      "timestamp": "2025-07-25T20:59:59Z",
+      "symbol": "",
+      "change": {
+        "currency_code": "RUB",
+        "units": "-1",
+        "nanos": -6400000
+      },
+      "transaction_category": "COMMISSION",
+      "transaction_name": "Брокерская комиссия"
+    },
+    {
+      "id": "2259286250",
+      "category": "DEPOSIT",
+      "timestamp": "2025-02-28T11:09:08Z",
+      "symbol": "",
+      "change": {
+        "currency_code": "RUB",
+        "units": "999",
+        "nanos": 0
+      },
+      "transaction_category": "DEPOSIT",
+      "transaction_name": "Ввод денежных средств"
+    }
+  ]
+}
+```
+
+## Key Concepts
+
+### Transaction Identification
+- **id**: Уникальный идентификатор каждой транзакции
+- **timestamp**: Время совершения транзакции (UTC)
+- **account_id**: Привязка к конкретному аккаунту
+
+### Money Changes
+- **units**: Целая часть суммы
+- **nanos**: Дробная часть (1 единица = 1,000,000,000 наносекунд)
+- **currency_code**: Код валюты
+- **Положительное значение**: Пополнение счета
+- **Отрицательное значение**: Списание со счета
+
+### Transaction Types
+- **Денежные операции**: symbol пустая строка (комиссии, депозиты, проценты)
+- **Инструментальные операции**: symbol содержит код инструмента (дивиденды, купоны)
+
+## Query Parameters Usage
+
+
+
+## Usage Notes
+- Обязательно передавать JWT-токен в заголовке Authorization
+- account_id берется из ответа TokenDetails
+- limit ограничивает количество возвращаемых транзакций
+- interval позволяет фильтровать транзакции по времени
+- Транзакции возвращаются в хронологическом порядке (новые первыми)
+- Пустой массив transactions означает отсутствие транзакций за указанный период
+- Для денежных операций symbol всегда пустая строка
+- Для операций с инструментами symbol содержит код инструмента

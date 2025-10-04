@@ -1,0 +1,104 @@
+# Exchanges API
+
+## Endpoint Information
+- **Method:** GET
+- **URL:** https://api.finam.ru/v1/exchanges
+- **Description:** Получение списка доступных бирж, названия и MIC коды
+
+## Request Parameters
+Нет параметров запроса
+
+## Request Headers
+- **Authorization:** JWT-токен (обязательно)
+
+## Response Parameters
+- **exchanges** (Exchange Array): Массив информации о биржах
+
+### Exchange Object Structure
+Каждая биржа содержит следующие поля:
+
+- **mic** (string): Идентификатор биржи MIC (Market Identifier Code)
+- **name** (string): Наименование биржи
+
+## Example Response
+```json
+{
+  "exchanges": [
+    {
+      "mic": "XCME",
+      "name": "CHICAGO MERCANTILE EXCHANGE"
+    },
+    {
+      "mic": "XCBT",
+      "name": "CHICAGO BOARD OF TRADE"
+    },
+    {
+      "mic": "RTSX",
+      "name": "MOSCOW EXCHANGE - DERIVATIVES MARKET"
+    },
+    {
+      "mic": "MISX",
+      "name": "MOSCOW EXCHANGE - ALL MARKETS"
+    },
+    {
+      "mic": "XNYS",
+      "name": "NEW YORK STOCK EXCHANGE, INC."
+    },
+    {
+      "mic": "ARCX",
+      "name": "NYSE ARCA"
+    }
+  ]
+}
+```
+
+## Key Concepts
+
+### MIC Codes (Market Identifier Codes)
+Уникальные 4-символьные коды для идентификации бирж:
+
+#### Российские биржи
+- **MISX**: Московская биржа - все рынки (акции, облигации)
+- **RTSX**: Московская биржа - срочный рынок (фьючерсы, опционы)
+
+#### Американские биржи
+- **XNYS**: Нью-Йоркская фондовая биржа (NYSE)
+- **ARCX**: NYSE ARCA (электронная торговая платформа)
+- **XNAS**: NASDAQ
+- **XCME**: Чикагская товарная биржа (CME)
+- **XCBT**: Чикагская торговая палата (CBOT)
+
+#### Европейские биржи
+- **XLON**: Лондонская фондовая биржа (LSE)
+- **XETR**: Франкфуртская фондовая биржа (XETRA)
+- **XPAR**: Парижская фондовая биржа (Euronext Paris)
+
+### Exchange Types
+- **Stock Exchanges**: Фондовые биржи (акции)
+- **Derivatives Exchanges**: Срочные биржи (фьючерсы, опционы)
+- **Commodity Exchanges**: Товарные биржи
+- **Multi-Market Exchanges**: Мультирыночные биржи
+
+## Usage Examples
+
+### Basic Request
+```
+GET /v1/exchanges
+Authorization: Bearer your_jwt_token
+```
+
+### Response Processing
+# Получение списка бирж
+response = requests.get(
+    "https://api.finam.ru/v1/exchanges",
+    headers={"Authorization": jwt_token}
+)
+
+## Usage Notes
+- Обязательно передавать JWT-токен в заголовке Authorization
+- Возвращает ВСЕ доступные биржи
+- MIC коды используются в символах инструментов (ticker@mic)
+- Список обновляется при добавлении новых бирж
+- Используйте для валидации MIC кодов в других запросах
+- Полезно для отображения пользователю названий бирж
+- MIC коды стандартизированы ISO 10383

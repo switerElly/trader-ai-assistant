@@ -1,0 +1,146 @@
+# Bars API
+
+## Endpoint Information
+- **Method:** GET
+- **URL:** https://api.finam.ru/v1/instruments/{symbol}/bars
+- **Description:** Получение исторических данных по инструменту (агрегированные свечи)
+
+## Request Parameters
+- **symbol** (string): Символ инструмента в формате `ticker@mic` (например, YDEX@MISX)
+- **timeframe** (TimeFrame): Необходимый таймфрейм
+- **interval** (google.type.Interval): Временной интервал
+  - **start_time** (string): Начало запрашиваемого периода (ISO 8601 или Unix timestamp)
+  - **end_time** (string): Окончание запрашиваемого периода (ISO 8601 или Unix timestamp)
+
+## Request Headers
+- **Authorization:** JWT-токен (обязательно)
+
+## Response Parameters
+- **symbol** (string): Символ инструмента
+- **bars** (Bar Array): Массив агрегированных свечей
+
+### Bar Object Structure
+Каждая свеча содержит следующие поля:
+
+- **timestamp** (string): Метка времени свечи (ISO 8601)
+- **open** (object): Цена открытия свечи
+  - **value** (string): Цена открытия
+- **high** (object): Максимальная цена свечи
+  - **value** (string): Максимальная цена
+- **low** (object): Минимальная цена свечи
+  - **value** (string): Минимальная цена
+- **close** (object): Цена закрытия свечи
+  - **value** (string): Цена закрытия
+- **volume** (object): Объём торгов за свечу в штуках
+  - **value** (string): Объём торгов
+
+## Example Response
+```json
+{
+  "symbol": "YDEX@MISX",
+  "bars": [
+    {
+      "timestamp": "2025-03-01T05:00:00Z",
+      "open": {
+        "value": "4450.0"
+      },
+      "high": {
+        "value": "4455.0"
+      },
+      "low": {
+        "value": "4427.0"
+      },
+      "close": {
+        "value": "4438.0"
+      },
+      "volume": {
+        "value": "13967.0"
+      }
+    },
+    {
+      "timestamp": "2025-03-02T05:00:00Z",
+      "open": {
+        "value": "4430.5"
+      },
+      "high": {
+        "value": "4432.5"
+      },
+      "low": {
+        "value": "4365.0"
+      },
+      "close": {
+        "value": "4376.0"
+      },
+      "volume": {
+        "value": "40558.0"
+      }
+    }
+  ]
+}
+```
+
+## Key Concepts
+
+### TimeFrame Values
+- **TIMEFRAME_1_MIN**: 1 минута
+- **TIMEFRAME_5_MIN**: 5 минут
+- **TIMEFRAME_15_MIN**: 15 минут
+- **TIMEFRAME_30_MIN**: 30 минут
+- **TIMEFRAME_1_HOUR**: 1 час
+- **TIMEFRAME_1_DAY**: 1 день
+- **TIMEFRAME_1_WEEK**: 1 неделя
+- **TIMEFRAME_1_MONTH**: 1 месяц
+
+### OHLCV Data
+- **Open**: Цена открытия периода
+- **High**: Максимальная цена за период
+- **Low**: Минимальная цена за период
+- **Close**: Цена закрытия периода
+- **Volume**: Объём торгов за период
+
+### Time Intervals
+- **start_time**: Начало периода (включительно)
+- **end_time**: Конец периода (включительно)
+- Формат: ISO 8601 (например, "2025-03-01T00:00:00Z") или Unix timestamp
+
+## Usage Examples
+
+### Basic Bars Retrieval
+```python
+import requests
+from datetime import datetime, timedelta
+
+def get_bars(symbol, timeframe, start_time, end_time, jwt_token):
+    """Получение исторических данных по инструменту"""
+    
+    url = f"https://api.finam.ru/v1/instruments/{symbol}/bars"
+    
+    params = {
+        "timeframe": timeframe,
+        "interval.start_time": start_time,
+        "interval.end_time": end_time
+    }
+    
+    headers = {
+        "Authorization": jwt_token
+    }
+    
+    try:
+        response = requests.get(url, params=params, headers=headers)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Ошибка запроса: {e}")
+        return None
+
+
+## Usage Notes
+- Обязательно передавать JWT-токен в заголовке Authorization
+- symbol должен быть в формате `ticker@mic` (например, YDEX@MISX)
+- timeframe определяет интервал агрегации данных
+- interval задаёт временной диапазон запроса
+- Данные возвращаются в хронологическом порядке (старые первыми)
+- Максимальный период запроса может быть ограничен API
+- Пустой массив bars означает отсутствие данных за указанный период
+- Все цены и объёмы возвращаются как строки в объектах value
+- Время всегда в UTC (Z в конце timestamp)

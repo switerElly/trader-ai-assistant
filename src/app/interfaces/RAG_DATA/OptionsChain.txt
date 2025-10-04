@@ -1,0 +1,140 @@
+# Options Chain API
+
+## Endpoint Information
+- **Method:** GET
+- **URL:** https://api.finam.ru/v1/assets/{underlying_symbol}/options
+- **Description:** Получение цепочки опционов для базового актива
+
+## Request Parameters
+- **underlying_symbol** (string): Символ базового актива опциона в формате ticker@mic
+
+## Request Headers
+- **Authorization:** JWT-токен (обязательно)
+
+## Response Parameters
+
+### Basic Information
+- **symbol** (string): Символ базового актива опциона
+- **options** (Option Array): Массив информации об опционах
+
+### Option Object Structure
+Каждый опцион содержит следующие поля:
+
+- **symbol** (string): Символ инструмента опциона
+- **type** (Option.Type): Тип опциона
+- **contract_size** (object): Лот, количество базового актива в инструменте
+  - **value** (string): Размер контракта
+- **trade_first_day** (google.type.Date, optional): Дата старта торговли
+- **trade_last_day** (google.type.Date): Дата окончания торговли
+- **strike** (object): Цена исполнения опциона
+  - **value** (string): Страйк цена
+- **multiplier** (string, optional): Множитель опциона
+- **expiration_first_day** (google.type.Date): Дата начала экспирации
+- **expiration_last_day** (google.type.Date): Дата окончания экспирации
+
+## Example Response
+```json
+{
+  "symbol": "YDEX@MISX",
+  "options": [
+    {
+      "symbol": "YD4300CU5A@RTSX",
+      "type": "TYPE_PUT",
+      "contract_size": {
+        "value": "1.0"
+      },
+      "trade_last_day": {
+        "year": 2025,
+        "month": 9,
+        "day": 3
+      },
+      "strike": {
+        "value": "4300.0"
+      },
+      "expiration_first_day": {
+        "year": 2025,
+        "month": 9,
+        "day": 3
+      },
+      "expiration_last_day": {
+        "year": 2025,
+        "month": 9,
+        "day": 3
+      }
+    },
+    {
+      "symbol": "YD4300CI5A@RTSX",
+      "type": "TYPE_CALL",
+      "contract_size": {
+        "value": "1.0"
+      },
+      "trade_last_day": {
+        "year": 2025,
+        "month": 9,
+        "day": 3
+      },
+      "strike": {
+        "value": "4300.0"
+      },
+      "expiration_first_day": {
+        "year": 2025,
+        "month": 9,
+        "day": 3
+      },
+      "expiration_last_day": {
+        "year": 2025,
+        "month": 9,
+        "day": 3
+      }
+    }
+  ]
+}
+```
+
+## Key Concepts
+
+### Option Types
+- **TYPE_CALL**: Опцион колл (право на покупку)
+- **TYPE_PUT**: Опцион пут (право на продажу)
+
+### Contract Specifications
+- **contract_size**: Количество базового актива в одном опционе
+- **strike**: Цена исполнения опциона (страйк)
+- **multiplier**: Множитель для расчета стоимости опциона
+
+### Trading Periods
+- **trade_first_day**: Дата начала торговли опционом
+- **trade_last_day**: Дата окончания торговли опционом
+- **expiration_first_day**: Дата начала экспирации
+- **expiration_last_day**: Дата окончания экспирации
+
+### Date Format
+- **year**: Год (4 цифры)
+- **month**: Месяц (1-12)
+- **day**: День (1-31)
+
+## Usage Examples
+
+### Basic Request
+```
+GET /v1/assets/YDEX@MISX/options
+Authorization: Bearer your_jwt_token
+```
+
+### Response Processing
+# Получение цепочки опционов
+response = requests.get(
+    "https://api.finam.ru/v1/assets/YDEX@MISX/options",
+    headers={"Authorization": jwt_token}
+)
+
+## Usage Notes
+- Обязательно передавать JWT-токен в заголовке Authorization
+- underlying_symbol должен быть в формате ticker@mic
+- Возвращает ВСЕ доступные опционы по базовому активу
+- Опционы могут иметь разные даты экспирации
+- contract_size обычно равен 1.0 для большинства опционов
+- strike определяет цену исполнения опциона
+- trade_last_day - последний день торговли перед экспирацией
+- Используйте для построения опционных стратегий
+- Пустой массив options означает отсутствие опционов по активу

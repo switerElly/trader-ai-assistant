@@ -1,0 +1,131 @@
+# LastQuote API
+
+## Endpoint Information
+- **Method:** GET
+- **URL:** https://api.finam.ru/v1/instruments/{symbol}/quotes/latest
+- **Description:** Получение последней котировки по инструменту
+
+## Request Parameters
+- **symbol** (string): Символ инструмента в формате `ticker@mic` (например, YDEX@MISX)
+
+## Request Headers
+- **Authorization:** JWT-токен (обязательно)
+
+## Response Parameters
+- **symbol** (string): Символ инструмента
+- **quote** (Quote): Объект с данными котировки
+
+### Quote Object Structure
+- **symbol** (string): Символ инструмента
+- **timestamp** (string): Метка времени последней котировки (ISO 8601)
+- **ask** (object): Цена аска (продажи)
+  - **value** (string): Цена аска (0 при отсутствии активного аска)
+- **ask_size** (object): Размер аска
+  - **value** (string): Количество в аске
+- **bid** (object): Цена бида (покупки)
+  - **value** (string): Цена бида (0 при отсутствии активного бида)
+- **bid_size** (object): Размер бида
+  - **value** (string): Количество в биде
+- **last** (object): Цена последней сделки
+  - **value** (string): Цена последней сделки
+- **last_size** (object): Размер последней сделки
+  - **value** (string): Количество в последней сделке
+- **volume** (object): Дневной объём сделок
+  - **value** (string): Объём в штуках
+- **turnover** (object): Дневной оборот сделок
+  - **value** (string): Оборот в валюте инструмента
+- **open** (object): Цена открытия (дневная)
+  - **value** (string): Цена открытия дня
+- **high** (object): Максимальная цена (дневная)
+  - **value** (string): Максимальная цена дня
+- **low** (object): Минимальная цена (дневная)
+  - **value** (string): Минимальная цена дня
+- **close** (object): Цена закрытия (дневная)
+  - **value** (string): Цена закрытия предыдущего дня
+- **change** (object): Изменение цены
+  - **value** (string): Разность между last и close
+- **option** (Quote.Option, optional): Информация об опционе (только для опционов)
+
+## Example Response
+```json
+{
+  "symbol": "YDEX@MISX",
+  "quote": {
+    "symbol": "YDEX@MISX",
+    "timestamp": "2025-07-24T08:40:46.838173Z",
+    "ask": {
+      "value": "4345.0"
+    },
+    "ask_size": {
+      "value": "438"
+    },
+    "bid": {
+      "value": "4344.5"
+    },
+    "bid_size": {
+      "value": "37"
+    },
+    "last": {
+      "value": "4344.5"
+    },
+    "last_size": {
+      "value": "5"
+    },
+    "volume": {
+      "value": "131667"
+    },
+    "turnover": {
+      "value": "5.75349694E8"
+    },
+    "open": {
+      "value": "0.0"
+    },
+    "high": {
+      "value": "0.0"
+    },
+    "low": {
+      "value": "0.0"
+    },
+    "close": {
+      "value": "4372.5"
+    },
+    "change": {
+      "value": "-28.0"
+    }
+  }
+}
+```
+
+## Key Concepts
+
+### Market Data Fields
+- **Ask/Bid**: Лучшие цены покупки и продажи в стакане заявок
+- **Ask Size/Bid Size**: Количество лотов в лучших ценах
+- **Last**: Цена последней исполненной сделки
+- **Last Size**: Размер последней сделки
+- **Spread**: Разность между ask и bid (ask - bid)
+
+### Daily Statistics
+- **Volume**: Общий объём торгов за день в штуках
+- **Turnover**: Общий оборот за день в валюте инструмента
+- **Open**: Цена открытия торгового дня
+- **High**: Максимальная цена за день
+- **Low**: Минимальная цена за день
+- **Close**: Цена закрытия предыдущего дня
+- **Change**: Изменение относительно закрытия предыдущего дня
+
+### Price Levels
+- **Ask = 0**: Нет активных заявок на продажу
+- **Bid = 0**: Нет активных заявок на покупку
+- **Open/High/Low = 0**: Торги ещё не начались или данные недоступны
+
+## Usage Notes
+- Обязательно передавать JWT-токен в заголовке Authorization
+- symbol должен быть в формате `ticker@mic` (например, YDEX@MISX)
+- Данные обновляются в реальном времени
+- ask = 0 или bid = 0 означает отсутствие активных заявок
+- open/high/low = 0 означает, что торги ещё не начались
+- change рассчитывается как last - close (предыдущий день)
+- Время всегда в UTC (Z в конце timestamp)
+- Рекомендуется кэшировать данные для частых запросов
+- Максимальная частота запросов может быть ограничена API
