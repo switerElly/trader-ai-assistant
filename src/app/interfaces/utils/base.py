@@ -46,8 +46,7 @@ def extract_api_request(text: str) -> tuple[str | None, str | None]:
 
 UNSAFE_METHODS = [
     "POST /v1/accounts/{account_id}/orders",
-    "DELETE /v1/accounts/{account_id}/orders/{order_id}",
-    "GET /v1/accounts/{account_id}"
+    "DELETE /v1/accounts/{account_id}/orders/{order_id}"
 ]
 
 def is_unsafe_method(method: str, path: str) -> bool:
