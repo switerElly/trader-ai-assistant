@@ -17,7 +17,7 @@ from src.app.core import call_llm
 # from src.app.core.local_llm import call_llm
 from src.app.interfaces.promt import SYSTEM_PROMT, API_PROMT
 
-from chat import create_system_prompt, extract_message, extract_api_request
+from chat import create_system_prompt, extract_message, extract_api_request, extract_is_last_message
 
 
 def main() -> None:  # noqa: C901
@@ -136,10 +136,11 @@ def main() -> None:  # noqa: C901
                             "content": f"Результат API запроса: {api_response}\n\nПроанализируй это.",
                         })
 
-                    # TODO: СЕЙЧАС он после второго ответа отправляет весь текст юезру
-                    # TODO: Надо исправить, чтобы в цикле проходилось до тех пор, пока ллмка не вернет джсон, где поле requests пустое, по идее
-                    # или надо доработать формат... короч TODO: в промт добавлю  что если это последнее сообщение пусть пишет "last": true в json
-                    # Доставать message из json надо функцией extract_message(llm_response: str) -> message: str
+                    # TODO: Надо исправить, чтобы в цикле проходилось до тех пор, пока ллмка extract_is_last_message от ответа ассистента не будет равна true
+                    # Последнее ли это сообщение extract_is_last_message(llm_response: str) -> is_last: bool
+                    # True, если последнее
+                    # Доставать message для пользователя из json надо функцией extract_message(llm_response: str) -> message: str
+
                     # Получаем финальный ответ
                     response = call_llm(conversation_history, temperature=0.3)
                     assistant_message = response["choices"][0]["message"]["content"]

@@ -31,6 +31,10 @@ def extract_message(text: str) -> Optional[str]:
         message = _manual_parse_message(text)
     return message
 
+def extract_is_last_message(text: str) -> bool:
+    is_last = _parse_last_field(text)
+    return is_last == 1
+
 
 # ============= FOR API REQUESTS ==============================
 
@@ -162,5 +166,46 @@ def _manual_parse_message(text: str) -> Optional[str]:
 
     if match:
         return match.group(1)
+
+    return None
+
+
+# ========== FOR LAST ===========
+
+def _parse_last_field(text: str) -> Optional[int]:
+    """
+    Извлекает значение поля last из текста.
+    Возвращает 0, 1 или None, если поле не найдено или содержит недопустимое значение.
+    """
+    # Пытаемся сначала распарсить как корректный JSON
+    try:
+        data = json.loads(text)
+        if "last" in data:
+            value = data["last"]
+            # Преобразуем в int, если это строка
+            if isinstance(value, str) and value.isdigit():
+                value = int(value)
+            # Проверяем, что значение 0 или 1
+            if value in (0, 1):
+                return value
+        return None
+    except json.JSONDecodeError:
+        # Если JSON некорректный, ищем поле через регулярные выражения
+        pass
+
+    # Паттерны для поиска поля last с числовыми значениями 0 или 1
+    patterns = [
+        r'"last"\s*:\s*(0|1)',  # Число без кавычек
+        r'"last"\s*:\s*"(0|1)"',  # Число в кавычках
+        r"'last'\s*:\s*(0|1)",  # С одинарными кавычками для ключа
+        r"'last'\s*:\s*'(0|1)'",  # С одинарными кавычками для ключа и значения
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            value = match.group(1)
+            # Всегда возвращаем как целое число
+            return int(value)
 
     return None

@@ -16,7 +16,7 @@ from src.app.core import call_llm, get_settings
 from src.app.interfaces.promt import SYSTEM_PROMT, API_PROMT
 
 
-from chat import create_system_prompt, extract_message, extract_api_request
+from chat import create_system_prompt, extract_message, extract_api_request, extract_is_last_message
 
 
 
