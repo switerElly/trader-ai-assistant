@@ -13,42 +13,50 @@ import streamlit as st
 
 from src.app.adapters import FinamAPIClient
 from src.app.core import call_llm, get_settings
+from src.app.interfaces.utils.base import create_system_prompt, extract_api_request, is_unsafe_method, parse_method_endpoint
 
+def confirm_request(finam_client: FinamAPIClient, method, path, conversation_history):
+    """Выполняем запрос после подтверждения"""
+    st.session_state.messages.append(
+        {"role": "assistant", "content": f"🔍 Выполняю запрос: `{method} {path}`"}
+    )
+    st.session_state.api_response = finam_client.execute_request(method, path)
+    # st.session_state.messages.append(
+    #     {"role": "assistant", "content": f"✅ Запрос выполнен: {method} {path}"}
+    # )
+    if "api_data" not in st.session_state:
+        st.session_state.api_data = None
+    if st.session_state.api_response:
+        api_response = st.session_state.api_response
+        st.session_state.api_data = {"method": method, "path": path, "response": api_response}
+        st.session_state.api_response = None
 
-def create_system_prompt() -> str:
-    """Создать системный промпт для AI ассистента"""
-    return """Ты - AI ассистент трейдера, работающий с Finam TradeAPI.
+        if not st.session_state.mock_run:
+            conversation_history.append({"role": "assistant", "content": st.session_state.assistant_message})
+            conversation_history.append({
+                "role": "user",
+                "content": f"Результат API: {json.dumps(api_response, ensure_ascii=False)}\n\nПроанализируй.",
+            })
 
-Когда пользователь задает вопрос о рынке, портфеле или хочет совершить действие:
-1. Определи нужный API endpoint
-2. Укажи запрос в формате: API_REQUEST: METHOD /path
-3. После получения данных - проанализируй их и дай понятный ответ
+            response = call_llm(conversation_history, temperature=0.3)
+            st.session_state.assistant_message = response["choices"][0]["message"]["content"]
+        else:
+            st.session_state.assistant_message = f"Результат API: {json.dumps(api_response, ensure_ascii=False)}"
+    if st.session_state.assistant_message:
+        st.markdown(st.session_state.assistant_message)
+        message_data = {"role": "assistant", "content": st.session_state.assistant_message}
+        if st.session_state.api_data:
+            message_data["api_request"] = st.session_state.api_data
+            st.session_state.api_data = None
+        st.session_state.messages.append(message_data)
+        st.session_state.assistant_message = None
 
-Доступные endpoints:
-- GET /v1/instruments/{symbol}/quotes/latest - котировка
-- GET /v1/instruments/{symbol}/orderbook - стакан
-- GET /v1/instruments/{symbol}/bars - свечи
-- GET /v1/accounts/{account_id} - счет и позиции
-- GET /v1/accounts/{account_id}/orders - ордера
-- POST /v1/accounts/{account_id}/orders - создать ордер
-- DELETE /v1/accounts/{account_id}/orders/{order_id} - отменить ордер
-
-Отвечай на русском, кратко и по делу."""
-
-
-def extract_api_request(text: str) -> tuple[str | None, str | None]:
-    """Извлечь API запрос из ответа LLM"""
-    if "API_REQUEST:" not in text:
-        return None, None
-
-    lines = text.split("\n")
-    for line in lines:
-        if line.strip().startswith("API_REQUEST:"):
-            request = line.replace("API_REQUEST:", "").strip()
-            parts = request.split(maxsplit=1)
-            if len(parts) == 2:
-                return parts[0], parts[1]
-    return None, None
+def cancel_request(method, path):
+    """Отмена запроса"""
+    st.session_state.messages.append(
+        {"role": "assistant", "content": f"🚫 Действие отменено: {method} {path}"}
+    )
+    st.session_state.api_response = None
 
 
 def main() -> None:  # noqa: C901
@@ -94,6 +102,28 @@ def main() -> None:  # noqa: C901
     # Инициализация состояния
     if "messages" not in st.session_state:
         st.session_state.messages = []
+    if "welcome_shown" not in st.session_state:
+        st.session_state.welcome_shown = False 
+    if not st.session_state.welcome_shown:
+        with st.chat_message("assistant"):
+            st.markdown("👋 Привет! Я твой AI-ассистент трейдера.\nВыберите режим работы:")
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("mock-run", key="btn_quotes"):
+                    st.session_state.messages.append(
+                        {"role": "assistant", "content": "Mock режим включён. Пиши 'METHOD endpoint' через пробел, и будет выполнен запрос."}
+                    )
+                    st.session_state.welcome_shown = True
+                    st.session_state.mock_run = True
+                    st.rerun()
+            with col2:
+                if st.button("Real-run", key="btn_portfolio"):
+                    st.session_state.messages.append(
+                        {"role": "assistant", "content": "Real-mode включён 💼"}
+                    )
+                    st.session_state.welcome_shown = True
+                    st.session_state.mock_run = False
+                    st.rerun()
 
     # Инициализация Finam API клиента
     finam_client = FinamAPIClient(access_token=api_token or None, base_url=api_base_url if api_base_url else None)
@@ -132,54 +162,71 @@ def main() -> None:  # noqa: C901
         # Получаем ответ от ассистента
         with st.chat_message("assistant"), st.spinner("Думаю..."):
             try:
-                response = call_llm(conversation_history, temperature=0.3)
-                assistant_message = response["choices"][0]["message"]["content"]
-
-                # Проверяем API запрос
-                method, path = extract_api_request(assistant_message)
-
-                api_data = None
-                if method and path:
-                    # Подставляем account_id если есть
-                    if account_id and "{account_id}" in path:  # noqa: RUF027
-                        path = path.replace("{account_id}", account_id)
-
-                    # Показываем что делаем запрос
-                    st.info(f"🔍 Выполняю запрос: `{method} {path}`")
-
-                    # Выполняем API запрос
-                    api_response = finam_client.execute_request(method, path)
-
-                    # Проверяем на ошибки
-                    if "error" in api_response:
-                        st.error(f"⚠️ Ошибка API: {api_response.get('error')}")
-                        if "details" in api_response:
-                            st.error(f"Детали: {api_response['details']}")
-
-                    # Показываем результат
-                    with st.expander("📡 Ответ API", expanded=False):
-                        st.json(api_response)
-
-                    api_data = {"method": method, "path": path, "response": api_response}
-
-                    # Добавляем результат в контекст
-                    conversation_history.append({"role": "assistant", "content": assistant_message})
-                    conversation_history.append({
-                        "role": "user",
-                        "content": f"Результат API: {json.dumps(api_response, ensure_ascii=False)}\n\nПроанализируй.",
-                    })
-
-                    # Получаем финальный ответ
+                method, path = None, None
+                api_response = None
+                if "assistant_message" not in st.session_state:
+                    st.session_state.assistant_message = None
+                if st.session_state.mock_run:
+                    # Разбираем METHOD endpoint из сообщения пользователя
+                    method, path = parse_method_endpoint(prompt)
+                    if not method or not path:
+                        st.session_state.assistant_message = "Не удалось распознать метод и путь в mock-run"
+                else:
+                    # real-run: вызываем LLM
                     response = call_llm(conversation_history, temperature=0.3)
-                    assistant_message = response["choices"][0]["message"]["content"]
+                    st.session_state.assistant_message = response["choices"][0]["message"]["content"]
+                    method, path = extract_api_request(st.session_state.assistant_message)
 
-                st.markdown(assistant_message)
+                if "api_response" not in st.session_state:
+                    st.session_state.api_response = None
+                if method and path:
+                    if is_unsafe_method(method, path):
+                        st.markdown(f"⚠️ Запрос `{method} {path}` требует подтверждения")
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.button(
+                                "✅ Подтвердить",
+                                key=f"confirm_{prompt}",
+                                on_click=confirm_request,
+                                args=(finam_client, method, path, conversation_history),
+                            )
+                        with col2:
+                            st.button(
+                                "❌ Отменить",
+                                key=f"cancel_{prompt}",
+                                on_click=cancel_request,
+                                args=(method, path),
+                            )
+                    else:
+                        st.session_state.api_response = finam_client.execute_request(method, path)
 
-                # Сохраняем сообщение ассистента
-                message_data = {"role": "assistant", "content": assistant_message}
-                if api_data:
-                    message_data["api_request"] = api_data
-                st.session_state.messages.append(message_data)
+                if "api_data" not in st.session_state:
+                    st.session_state.api_data = None
+                if st.session_state.api_response:
+                    api_response = st.session_state.api_response
+                    st.session_state.api_data = {"method": method, "path": path, "response": api_response}
+                    st.session_state.api_response = None
+
+                    if not st.session_state.mock_run:
+                        conversation_history.append({"role": "assistant", "content": st.session_state.assistant_message})
+                        conversation_history.append({
+                            "role": "user",
+                            "content": f"Результат API: {json.dumps(api_response, ensure_ascii=False)}\n\nПроанализируй.",
+                        })
+
+                        response = call_llm(conversation_history, temperature=0.3)
+                        st.session_state.assistant_message = response["choices"][0]["message"]["content"]
+                    else:
+                        st.session_state.assistant_message = f"Результат API: {json.dumps(api_response, ensure_ascii=False)}"
+                if st.session_state.assistant_message:
+                    st.markdown(st.session_state.assistant_message)
+                    message_data = {"role": "assistant", "content": st.session_state.assistant_message}
+                    if st.session_state.api_data:
+                        message_data["api_request"] = st.session_state.api_data
+                        st.session_state.api_data = None
+                    st.session_state.messages.append(message_data)
+                    st.session_state.assistant_message = None
+                
 
             except Exception as e:
                 st.error(f"❌ Ошибка: {e}")

@@ -13,6 +13,7 @@ import click
 
 from src.app.adapters import FinamAPIClient
 from src.app.core import call_llm, get_settings
+from src.app.interfaces.utils.base import extract_api_request
 
 
 def create_system_prompt() -> str:
@@ -44,21 +45,6 @@ API_REQUEST: GET /v1/instruments/SBER@MISX/quotes/latest
 ```
 
 Отвечай на русском языке, будь полезным и дружелюбным."""
-
-
-def extract_api_request(text: str) -> tuple[str | None, str | None]:
-    """Извлечь API запрос из ответа LLM"""
-    if "API_REQUEST:" not in text:
-        return None, None
-
-    lines = text.split("\n")
-    for line in lines:
-        if line.strip().startswith("API_REQUEST:"):
-            request = line.replace("API_REQUEST:", "").strip()
-            parts = request.split(maxsplit=1)
-            if len(parts) == 2:
-                return parts[0], parts[1]
-    return None, None
 
 
 @click.command()

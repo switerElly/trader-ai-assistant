@@ -8,6 +8,9 @@ from typing import Any
 
 import requests
 
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class FinamAPIClient:
     """
@@ -24,15 +27,35 @@ class FinamAPIClient:
             access_token: Токен доступа к API (из переменной окружения FINAM_ACCESS_TOKEN)
             base_url: Базовый URL API (по умолчанию из документации)
         """
+
+
+
         self.access_token = access_token or os.getenv("FINAM_ACCESS_TOKEN", "")
         self.base_url = base_url or os.getenv("FINAM_API_BASE_URL", "https://api.finam.ru")
         self.session = requests.Session()
 
-        if self.access_token:
+        self.jwt_token = self._get_jwt_token()
+    
+        if self.jwt_token:
             self.session.headers.update({
-                "Authorization": f"Bearer {self.access_token}",
+                "Authorization": f"Bearer {self.jwt_token}",
                 "Content-Type": "application/json",
             })
+
+    def _get_jwt_token(self) -> str | None:
+        """Получить JWT токен из секретного ключа через /v1/sessions"""
+        try:
+            response = self.session.post(
+                f"{self.base_url}/v1/sessions",
+                json={"secret": self.access_token},
+                timeout=30
+            )
+            response.raise_for_status()
+            data = response.json()
+            return data.get("token")
+        except Exception as e:
+            print(f"Ошибка получения JWT токена: {e}")
+            return None
 
     def execute_request(self, method: str, path: str, **kwargs: Any) -> dict[str, Any]:  # noqa: ANN401
         """
